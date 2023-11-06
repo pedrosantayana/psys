@@ -1,4 +1,4 @@
-# PSYS - Portable SYStem - v0.0.1
+# PSYS - Portable SYStem - v0.0.2
 
 # Enable TLSv1.2 for compatibility with older clients
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
@@ -63,17 +63,31 @@ function MSYS2Installer {
     }
 }
 
+function AlacrittyConfig {
+    $url_psys_github = "https://api.github.com/repos/pedrosantayana/psys/releases/latest"
+    $response_psys_github = Invoke-RestMethod -Uri $url_psys_github
+
+    foreach ($asset in $response_psys_github.assets) {
+        if ($asset.name -like "alacritty.yml") {
+            $urlAlacrittyConfigFile = $asset.browser_download_url
+        }
+    }
+
+    if ($urlAlacrittyConfigFile) {
+        Write-Debug -Message "Found Alacritty config file"
+        $pathAlacrittyConfigFile = "$installpath\alacritty.yml"
+        Invoke-WebRequest -Uri $urlAlacrittyConfigFile -OutFile $pathAlacrittyConfigFile
+    }
+}
+
 function AlacrittyInstaller {
-    $url_alacritty_github = "https://api.github.com/repos/alacritty/alacritty/releases/latest"
+    $url_alacritty_github = "https://api.github.com/repos/alacritty/alacritty/releases/tags/v0.12.3"
     $response_alacritty_github = Invoke-RestMethod -Uri $url_alacritty_github
 
     foreach ($asset in $response_alacritty_github.assets) {
         if ($asset.name -like "*portable.exe") {
             $urlAlacrittyPortable = $asset.browser_download_url
             $nameAlacrittyPortable = $asset.name
-        }
-        if ($asset.name -like "alacritty.yml") {
-            $urlAlacrittyConfigFile = $asset.browser_download_url
         }
     }
 
@@ -83,13 +97,14 @@ function AlacrittyInstaller {
         Invoke-WebRequest -Uri $urlAlacrittyPortable -OutFile $pathAlacrittyPortable
     }
 
-    if ($urlAlacrittyConfigFile) {
-        Write-Debug -Message "Found Alacritty config file"
-        $pathAlacrittyConfigFile = "$installpath\alacritty.yml"
-        Invoke-WebRequest -Uri $urlAlacrittyConfigFile -OutFile $pathAlacrittyConfigFile
-    }
+    AlacrittyConfig
 
-    $null = New-Item -Path "$installPath" -ItemType SymbolicLink -Name "Alacritty.lnk" -Value "$installPath\$nameAlacrittyPortable -e$installPath\msys64\usr\bin\bash.exe"
+    # $WshShell = New-Object -comObject WScript.Shell
+    # $Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Alacritty - PSYS.lnk")
+    # $Shortcut.TargetPath = "$installPath\$nameAlacrittyPortable"
+    # $Shortcut.Arguments = "--config-file $installPath\alacritty.yml"  
+    # $Shortcut.Save()
+
 }
 
 function Installer {
